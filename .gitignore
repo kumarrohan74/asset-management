@@ -1,0 +1,73 @@
+# =========================
+# Dependencies
+# =========================
+
+node_modules/
+frontend/node_modules/
+
+# Python virtual environment
+backend/venv/
+venv/
+
+# =========================
+# Python
+# =========================
+
+__pycache__/
+*.py[cod]
+*.pyo
+
+# =========================
+# Environment / Secrets
+# =========================
+
+.env
+.env.*
+!.env.example
+
+# =========================
+# Database
+# =========================
+
+*.db
+*.sqlite
+*.sqlite3
+
+# =========================
+# macOS
+# =========================
+
+.DS_Store
+
+# =========================
+# Windows
+# =========================
+
+Thumbs.db
+Desktop.ini
+
+# =========================
+# IDE / Editors
+# =========================
+
+.vscode/
+.idea/
+
+# =========================
+# Logs
+# =========================
+
+*.log
+logs/
+
+# =========================
+# Build output
+# =========================
+
+frontend/dist/
+frontend/build/
+backend/dist/
+backend/build/
+
+# Vite cache
+.vite/

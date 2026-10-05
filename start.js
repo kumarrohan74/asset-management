@@ -7,7 +7,6 @@ const isWindows = process.platform === "win32";
 const projectRoot = __dirname;
 const backendDir = path.join(projectRoot, "backend");
 const frontendDir = path.join(projectRoot, "frontend");
-
 const venvDir = path.join(backendDir, "venv");
 
 const pythonPath = isWindows
@@ -20,21 +19,23 @@ let backendProcess = null;
 let frontendProcess = null;
 
 function run(command, args, options = {}) {
-  const child = spawn(command, args, {
+  return spawn(command, args, {
     stdio: "inherit",
-    shell: false,
+
+    // Important for Windows:
+    // Allows Node to correctly execute npm.cmd
+    shell: isWindows,
+
     ...options,
   });
-
-  child.on("error", (error) => {
-    console.error(`Failed to start ${command}:`, error.message);
-  });
-
-  return child;
 }
 
 function waitForProcess(child, errorMessage) {
   return new Promise((resolve, reject) => {
+    child.on("error", (error) => {
+      reject(error);
+    });
+
     child.on("exit", (code) => {
       if (code === 0) {
         resolve();
@@ -51,7 +52,7 @@ function commandExists(command) {
 
     const child = spawn(checkCommand, [command], {
       stdio: "ignore",
-      shell: false,
+      shell: isWindows,
     });
 
     child.on("exit", (code) => {
@@ -147,6 +148,8 @@ async function setupFrontend() {
       npmInstallProcess,
       "Failed to install frontend dependencies."
     );
+  } else {
+    console.log("Frontend dependencies: Ready");
   }
 }
 
@@ -189,7 +192,10 @@ async function startApplication() {
   console.log("========================================");
   console.log("");
 
+  // -----------------------------
   // Check Python
+  // -----------------------------
+
   const pythonCommand = await checkPython();
 
   if (!pythonCommand) {
@@ -206,23 +212,27 @@ async function startApplication() {
   }
 
   console.log("Python : OK");
-
-  // Node/npm is already available because this script
-  // was launched through npm.
-  console.log("Node.js: OK");
+  console.log(`Node.js: ${process.version}`);
 
   try {
+    // -----------------------------
     // Backend setup
+    // -----------------------------
+
     await setupBackend(pythonCommand);
 
     console.log("Backend: Ready");
 
+    // -----------------------------
     // Frontend setup
+    // -----------------------------
+
     await setupFrontend();
 
-    console.log("Frontend: Ready");
-
+    // -----------------------------
     // Start backend
+    // -----------------------------
+
     console.log("");
     console.log("Starting backend...");
 
@@ -239,7 +249,10 @@ async function startApplication() {
       }
     );
 
+    // -----------------------------
     // Start frontend
+    // -----------------------------
+
     console.log("Starting frontend...");
 
     frontendProcess = run(

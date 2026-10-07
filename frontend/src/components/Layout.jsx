@@ -1,47 +1,36 @@
-
 import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 
+import { getAssets } from "../services/assetsApi";
+import { getAssignments } from "../services/assignmentsApi";
+
 function Layout() {
-  const [notificationsOpen, setNotificationsOpen] =
-    useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const [assets, setAssets] = useState([]);
   const [assignments, setAssignments] = useState([]);
 
-  const loadNotifications = () => {
-    const savedAssets =
-      localStorage.getItem("assets");
+  const loadNotifications = async () => {
+    try {
+      const [assetsData, assignmentsData] = await Promise.all([
+        getAssets(),
+        getAssignments(),
+      ]);
 
-    const savedAssignments =
-      localStorage.getItem("assignments");
-
-    setAssets(
-      savedAssets
-        ? JSON.parse(savedAssets)
-        : []
-    );
-
-    setAssignments(
-      savedAssignments
-        ? JSON.parse(savedAssignments)
-        : []
-    );
+      setAssets(assetsData);
+      setAssignments(assignmentsData);
+    } catch (error) {
+      console.error("Failed to load notifications:", error);
+    }
   };
 
   useEffect(() => {
     loadNotifications();
 
-    window.addEventListener(
-      "focus",
-      loadNotifications
-    );
+    window.addEventListener("focus", loadNotifications);
 
     return () => {
-      window.removeEventListener(
-        "focus",
-        loadNotifications
-      );
+      window.removeEventListener("focus", loadNotifications);
     };
   }, []);
 
@@ -53,24 +42,20 @@ function Layout() {
     (asset) => asset.status === "Available"
   ).length;
 
-  const recentAssignmentCount =
-    assignments.filter((assignment) => {
-      const assignedDate = new Date(
-        assignment.assignedDate
-      );
+  const recentAssignmentCount = assignments.filter((assignment) => {
+    if (!assignment.assigned_date) {
+      return false;
+    }
 
-      const sevenDaysAgo = new Date();
+    const assignedDate = new Date(assignment.assigned_date);
 
-      sevenDaysAgo.setDate(
-        sevenDaysAgo.getDate() - 7
-      );
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-      return assignedDate >= sevenDaysAgo;
-    }).length;
+    return assignedDate >= sevenDaysAgo;
+  }).length;
 
-  const notificationCount =
-    maintenanceCount +
-    recentAssignmentCount;
+  const notificationCount = maintenanceCount + recentAssignmentCount;
 
   const menuItems = [
     {
@@ -113,33 +98,24 @@ function Layout() {
         </div>
 
         <nav className="sidebar-nav">
-          <p className="nav-section-title">
-            MAIN MENU
-          </p>
+          <p className="nav-section-title">MAIN MENU</p>
 
           {menuItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
-                `nav-item ${
-                  isActive ? "active" : ""
-                }`
+                `nav-item ${isActive ? "active" : ""}`
               }
             >
-              <span className="nav-icon">
-                {item.icon}
-              </span>
-
+              <span className="nav-icon">{item.icon}</span>
               <span>{item.name}</span>
             </NavLink>
           ))}
         </nav>
 
         <div className="sidebar-footer">
-          <div className="user-avatar">
-            A
-          </div>
+          <div className="user-avatar">A</div>
 
           <div className="user-info">
             <strong>Admin User</strong>
@@ -151,9 +127,7 @@ function Layout() {
       <div className="main-wrapper">
         <header className="topbar">
           <div>
-            <span className="topbar-label">
-              ASSET MANAGEMENT
-            </span>
+            <span className="topbar-label">ASSET MANAGEMENT</span>
           </div>
 
           <div className="topbar-right">
@@ -161,18 +135,14 @@ function Layout() {
               <button
                 className="notification-button"
                 onClick={() =>
-                  setNotificationsOpen(
-                    (previous) => !previous
-                  )
+                  setNotificationsOpen((previous) => !previous)
                 }
               >
                 ♢
 
                 {notificationCount > 0 && (
                   <span className="notification-badge">
-                    {notificationCount > 9
-                      ? "9+"
-                      : notificationCount}
+                    {notificationCount > 9 ? "9+" : notificationCount}
                   </span>
                 )}
               </button>
@@ -181,21 +151,12 @@ function Layout() {
                 <div className="notification-dropdown">
                   <div className="notification-header">
                     <div>
-                      <strong>
-                        Notifications
-                      </strong>
-
-                      <span>
-                        System overview
-                      </span>
+                      <strong>Notifications</strong>
+                      <span>System overview</span>
                     </div>
 
                     <button
-                      onClick={() =>
-                        setNotificationsOpen(
-                          false
-                        )
-                      }
+                      onClick={() => setNotificationsOpen(false)}
                     >
                       ×
                     </button>
@@ -209,44 +170,30 @@ function Layout() {
                         </div>
 
                         <div>
-                          <strong>
-                            Maintenance required
-                          </strong>
+                          <strong>Maintenance required</strong>
 
                           <span>
-                            {maintenanceCount}{" "}
-                            asset
-                            {maintenanceCount !==
-                            1
-                              ? "s"
-                              : ""}{" "}
-                            need attention
+                            {maintenanceCount} asset
+                            {maintenanceCount !== 1 ? "s" : ""} need
+                            attention
                           </span>
                         </div>
                       </div>
                     )}
 
-                    {recentAssignmentCount >
-                      0 && (
+                    {recentAssignmentCount > 0 && (
                       <div className="notification-item">
                         <div className="notification-item-icon">
                           ⇄
                         </div>
 
                         <div>
-                          <strong>
-                            Recent assignments
-                          </strong>
+                          <strong>Recent assignments</strong>
 
                           <span>
-                            {recentAssignmentCount}{" "}
-                            asset
-                            {recentAssignmentCount !==
-                            1
-                              ? "s"
-                              : ""}{" "}
-                            assigned in the last
-                            7 days
+                            {recentAssignmentCount} asset
+                            {recentAssignmentCount !== 1 ? "s" : ""}{" "}
+                            assigned in the last 7 days
                           </span>
                         </div>
                       </div>
@@ -259,40 +206,25 @@ function Layout() {
                         </div>
 
                         <div>
-                          <strong>
-                            Assets available
-                          </strong>
+                          <strong>Available assets</strong>
 
                           <span>
-                            {availableCount}{" "}
-                            asset
-                            {availableCount !==
-                            1
-                              ? "s"
-                              : ""}{" "}
-                            ready for assignment
+                            {availableCount} asset
+                            {availableCount !== 1 ? "s" : ""} currently
+                            available
                           </span>
                         </div>
                       </div>
                     )}
 
-                    {notificationCount ===
-                      0 && (
+                    {notificationCount === 0 && (
                       <div className="notification-empty">
-                        You're all caught up.
+                        No new notifications
                       </div>
                     )}
                   </div>
                 </div>
               )}
-            </div>
-
-            <div className="topbar-user">
-              <div className="user-avatar small">
-                A
-              </div>
-
-              <span>Admin</span>
             </div>
           </div>
         </header>

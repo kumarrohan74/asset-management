@@ -1,503 +1,247 @@
 import { useEffect, useState } from "react";
 
+import { getEmployees } from "../services/employeesApi";
+import { getAssets } from "../services/assetsApi";
+import { getAssignments } from "../services/assignmentsApi";
+
 function Reports() {
   const [employees, setEmployees] = useState([]);
   const [assets, setAssets] = useState([]);
   const [assignments, setAssignments] = useState([]);
 
-  const loadData = () => {
-    const savedEmployees =
-      localStorage.getItem("employees");
-
-    const savedAssets =
-      localStorage.getItem("assets");
-
-    const savedAssignments =
-      localStorage.getItem("assignments");
-
-    setEmployees(
-      savedEmployees
-        ? JSON.parse(savedEmployees)
-        : []
-    );
-
-    setAssets(
-      savedAssets
-        ? JSON.parse(savedAssets)
-        : []
-    );
-
-    setAssignments(
-      savedAssignments
-        ? JSON.parse(savedAssignments)
-        : []
-    );
-  };
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    loadData();
-
-    window.addEventListener("focus", loadData);
-
-    return () => {
-      window.removeEventListener(
-        "focus",
-        loadData
-      );
-    };
+    loadReportData();
   }, []);
 
-  const totalAssets = assets.length;
+  const loadReportData = async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-  const assignedAssets = assets.filter(
-    (asset) => asset.status === "Assigned"
+      const [
+        employeesData,
+        assetsData,
+        assignmentsData,
+      ] = await Promise.all([
+        getEmployees(),
+        getAssets(),
+        getAssignments(),
+      ]);
+
+      setEmployees(employeesData);
+      setAssets(assetsData);
+      setAssignments(assignmentsData);
+    } catch (error) {
+      console.error(error);
+
+      setError(
+        "Unable to load report data. Please make sure the backend is running."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const activeEmployees = employees.filter(
+    (employee) => employee.status === "Active"
+  ).length;
+
+  const inactiveEmployees = employees.filter(
+    (employee) => employee.status === "Inactive"
   ).length;
 
   const availableAssets = assets.filter(
     (asset) => asset.status === "Available"
   ).length;
 
+  const assignedAssets = assets.filter(
+    (asset) => asset.status === "Assigned"
+  ).length;
+
   const maintenanceAssets = assets.filter(
     (asset) => asset.status === "Maintenance"
   ).length;
 
-  const retiredAssets = assets.filter(
-    (asset) => asset.status === "Retired"
+  const returnedAssignments = assignments.filter(
+    (assignment) => assignment.returned_date
   ).length;
 
-  const activeEmployees = employees.filter(
-    (employee) => employee.status === "Active"
+  const activeAssignments = assignments.filter(
+    (assignment) => !assignment.returned_date
   ).length;
 
-  const assetTypes = {};
+  if (loading) {
+    return (
+      <div className="page-container">
+        <div className="page-header">
+          <div>
+            <h2>Reports</h2>
+            <p>View asset and employee insights.</p>
+          </div>
+        </div>
 
-  assets.forEach((asset) => {
-    const type = asset.asset_type || "Other";
-
-    assetTypes[type] =
-      (assetTypes[type] || 0) + 1;
-  });
-
-  const assetTypeEntries = Object.entries(
-    assetTypes
-  ).sort((a, b) => b[1] - a[1]);
-
-  const getEmployee = (employeeId) => {
-    return employees.find(
-      (employee) => employee.id === employeeId
+        <div className="empty-state">
+          <p>Loading report data...</p>
+        </div>
+      </div>
     );
-  };
+  }
 
-  const getAsset = (assetId) => {
-    return assets.find(
-      (asset) => asset.id === assetId
+  if (error) {
+    return (
+      <div className="page-container">
+        <div className="page-header">
+          <div>
+            <h2>Reports</h2>
+            <p>View asset and employee insights.</p>
+          </div>
+        </div>
+
+        <div className="empty-state">
+          <p>{error}</p>
+
+          <button onClick={loadReportData}>
+            Try Again
+          </button>
+        </div>
+      </div>
     );
-  };
-
-  const getEmployeeAssetCount = (employeeId) => {
-    return assignments.filter(
-      (assignment) =>
-        assignment.employeeId === employeeId &&
-        !assignment.returnedDate
-    ).length;
-  };
-
-  const formatDate = (date) => {
-    if (!date) {
-      return "-";
-    }
-
-    return new Date(date).toLocaleDateString(
-      "en-IN"
-    );
-  };
+  }
 
   return (
-    <div className="reports-page">
-      {/* Header */}
-
+    <div className="page-container">
       <div className="page-header">
         <div>
           <h2>Reports</h2>
-
-          <p>
-            View asset inventory and assignment
-            reports.
-          </p>
+          <p>View asset and employee insights.</p>
         </div>
       </div>
 
-      {/* Summary Cards */}
-
-      <div className="reports-stats">
-        <div className="report-stat-card">
-          <span>Total Assets</span>
-
-          <strong>{totalAssets}</strong>
-
-          <small>All inventory</small>
+      <div className="stats-grid">
+        <div className="stat-card">
+          <span>Total Employees</span>
+          <strong>{employees.length}</strong>
         </div>
 
-        <div className="report-stat-card">
-          <span>Assigned</span>
-
-          <strong>{assignedAssets}</strong>
-
-          <small>Currently assigned</small>
-        </div>
-
-        <div className="report-stat-card">
-          <span>Available</span>
-
-          <strong>{availableAssets}</strong>
-
-          <small>Ready to assign</small>
-        </div>
-
-        <div className="report-stat-card">
-          <span>Employees</span>
-
+        <div className="stat-card">
+          <span>Active Employees</span>
           <strong>{activeEmployees}</strong>
+        </div>
 
-          <small>Active employees</small>
+        <div className="stat-card">
+          <span>Total Assets</span>
+          <strong>{assets.length}</strong>
+        </div>
+
+        <div className="stat-card">
+          <span>Assigned Assets</span>
+          <strong>{assignedAssets}</strong>
+        </div>
+
+        <div className="stat-card">
+          <span>Available Assets</span>
+          <strong>{availableAssets}</strong>
+        </div>
+
+        <div className="stat-card">
+          <span>Maintenance Assets</span>
+          <strong>{maintenanceAssets}</strong>
+        </div>
+
+        <div className="stat-card">
+          <span>Active Assignments</span>
+          <strong>{activeAssignments}</strong>
+        </div>
+
+        <div className="stat-card">
+          <span>Returned Assignments</span>
+          <strong>{returnedAssignments}</strong>
         </div>
       </div>
 
-      {/* Asset Distribution + Employee Usage */}
-
-      <div className="reports-grid">
-
-        {/* Asset Distribution */}
-
-        <div className="report-panel">
-          <div className="report-panel-header">
-            <div>
-              <h3>Asset Distribution</h3>
-
-              <p>
-                Assets grouped by type
-              </p>
-            </div>
-          </div>
-
-          <div className="distribution-list">
-            {assetTypeEntries.length === 0 ? (
-              <div className="report-empty">
-                No assets available.
-              </div>
-            ) : (
-              assetTypeEntries.map(
-                ([type, count]) => {
-                  const percentage =
-                    totalAssets > 0
-                      ? Math.round(
-                          (count /
-                            totalAssets) *
-                            100
-                        )
-                      : 0;
-
-                  return (
-                    <div
-                      className="distribution-item"
-                      key={type}
-                    >
-                      <div className="distribution-top">
-                        <span>{type}</span>
-
-                        <strong>
-                          {count}
-                        </strong>
-                      </div>
-
-                      <div className="distribution-bar">
-                        <div
-                          className="distribution-fill"
-                          style={{
-                            width: `${percentage}%`,
-                          }}
-                        ></div>
-                      </div>
-                    </div>
-                  );
-                }
-              )
-            )}
-          </div>
-        </div>
-
-        {/* Employee Asset Usage */}
-
-        <div className="report-panel">
-          <div className="report-panel-header">
-            <div>
-              <h3>
-                Employee Asset Usage
-              </h3>
-
-              <p>
-                Currently assigned assets
-              </p>
-            </div>
-          </div>
-
-          <div className="employee-usage-list">
-            {employees.length === 0 ? (
-              <div className="report-empty">
-                No employees available.
-              </div>
-            ) : (
-              employees.map((employee) => {
-                const assetCount =
-                  getEmployeeAssetCount(
-                    employee.id
-                  );
-
-                return (
-                  <div
-                    className="employee-usage-item"
-                    key={employee.id}
-                  >
-                    <div className="employee-usage-info">
-                      <div className="employee-avatar">
-                        {employee.name
-                          ?.charAt(0)
-                          .toUpperCase() ||
-                          "?"}
-                      </div>
-
-                      <div>
-                        <strong>
-                          {employee.name}
-                        </strong>
-
-                        <span>
-                          {employee.employee_id}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="employee-usage-count">
-                      <strong>
-                        {assetCount}
-                      </strong>
-
-                      <span>
-                        {assetCount === 1
-                          ? "asset"
-                          : "assets"}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Asset Status */}
-
-      <div className="report-panel status-report-panel">
-        <div className="report-panel-header">
+      <div className="content-card">
+        <div className="content-card-header">
           <div>
-            <h3>Asset Status Summary</h3>
-
-            <p>
-              Current status of all inventory
-            </p>
+            <h3>Employee Overview</h3>
+            <p>Current employee status summary.</p>
           </div>
         </div>
 
-        <div className="status-summary">
-          <div className="status-summary-item">
-            <span className="status-summary-dot available"></span>
-
-            <div>
-              <strong>Available</strong>
-              <span>
-                Ready for assignment
-              </span>
-            </div>
-
-            <b>{availableAssets}</b>
+        <div className="report-summary">
+          <div>
+            <span>Active</span>
+            <strong>{activeEmployees}</strong>
           </div>
 
-          <div className="status-summary-item">
-            <span className="status-summary-dot assigned"></span>
-
-            <div>
-              <strong>Assigned</strong>
-              <span>
-                Currently with employees
-              </span>
-            </div>
-
-            <b>{assignedAssets}</b>
+          <div>
+            <span>Inactive</span>
+            <strong>{inactiveEmployees}</strong>
           </div>
 
-          <div className="status-summary-item">
-            <span className="status-summary-dot maintenance"></span>
-
-            <div>
-              <strong>Maintenance</strong>
-              <span>
-                Requires attention
-              </span>
-            </div>
-
-            <b>{maintenanceAssets}</b>
-          </div>
-
-          <div className="status-summary-item">
-            <span className="status-summary-dot retired"></span>
-
-            <div>
-              <strong>Retired</strong>
-              <span>
-                No longer in service
-              </span>
-            </div>
-
-            <b>{retiredAssets}</b>
+          <div>
+            <span>Total</span>
+            <strong>{employees.length}</strong>
           </div>
         </div>
       </div>
 
-      {/* Assignment History */}
-
-      <div className="report-panel assignment-report-panel">
-        <div className="report-panel-header">
+      <div className="content-card">
+        <div className="content-card-header">
           <div>
-            <h3>Assignment History</h3>
-
-            <p>
-              Complete asset assignment
-              history
-            </p>
+            <h3>Asset Overview</h3>
+            <p>Current asset status summary.</p>
           </div>
         </div>
 
-        <div className="table-wrapper">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Employee</th>
-                <th>Asset</th>
-                <th>Assigned Date</th>
-                <th>Returned Date</th>
-                <th>Status</th>
-              </tr>
-            </thead>
+        <div className="report-summary">
+          <div>
+            <span>Available</span>
+            <strong>{availableAssets}</strong>
+          </div>
 
-            <tbody>
-              {assignments.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan="5"
-                    className="empty-state"
-                  >
-                    No assignment history
-                    available.
-                  </td>
-                </tr>
-              ) : (
-                [...assignments]
-                  .sort(
-                    (a, b) =>
-                      new Date(
-                        b.assignedDate
-                      ) -
-                      new Date(
-                        a.assignedDate
-                      )
-                  )
-                  .map((assignment) => {
-                    const employee =
-                      getEmployee(
-                        assignment.employeeId
-                      );
+          <div>
+            <span>Assigned</span>
+            <strong>{assignedAssets}</strong>
+          </div>
 
-                    const asset =
-                      getAsset(
-                        assignment.assetId
-                      );
+          <div>
+            <span>Maintenance</span>
+            <strong>{maintenanceAssets}</strong>
+          </div>
 
-                    const returned =
-                      Boolean(
-                        assignment.returnedDate
-                      );
+          <div>
+            <span>Total</span>
+            <strong>{assets.length}</strong>
+          </div>
+        </div>
+      </div>
 
-                    return (
-                      <tr
-                        key={assignment.id}
-                      >
-                        <td>
-                          <div className="employee-cell">
-                            <div className="employee-avatar">
-                              {employee?.name
-                                ?.charAt(0)
-                                .toUpperCase() ||
-                                "?"}
-                            </div>
+      <div className="content-card">
+        <div className="content-card-header">
+          <div>
+            <h3>Assignment Overview</h3>
+            <p>Current and historical assignment summary.</p>
+          </div>
+        </div>
 
-                            <div>
-                              <strong>
-                                {employee?.name ||
-                                  "Unknown"}
-                              </strong>
+        <div className="report-summary">
+          <div>
+            <span>Active Assignments</span>
+            <strong>{activeAssignments}</strong>
+          </div>
 
-                              <span>
-                                {employee?.employee_id ||
-                                  "-"}
-                              </span>
-                            </div>
-                          </div>
-                        </td>
+          <div>
+            <span>Returned</span>
+            <strong>{returnedAssignments}</strong>
+          </div>
 
-                        <td>
-                          <strong>
-                            {asset?.asset_name ||
-                              "Unknown Asset"}
-                          </strong>
-
-                          <div className="table-subtext">
-                            {asset?.asset_id ||
-                              "-"}
-                          </div>
-                        </td>
-
-                        <td>
-                          {formatDate(
-                            assignment.assignedDate
-                          )}
-                        </td>
-
-                        <td>
-                          {formatDate(
-                            assignment.returnedDate
-                          )}
-                        </td>
-
-                        <td>
-                          <span
-                            className={`status-badge assignment-status ${
-                              returned
-                                ? "returned"
-                                : "assigned"
-                            }`}
-                          >
-                            {returned
-                              ? "Returned"
-                              : "Assigned"}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })
-              )}
-            </tbody>
-          </table>
+          <div>
+            <span>Total</span>
+            <strong>{assignments.length}</strong>
+          </div>
         </div>
       </div>
     </div>

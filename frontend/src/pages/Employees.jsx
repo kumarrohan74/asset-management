@@ -6,41 +6,6 @@ import {
   deleteEmployee
 } from "../services/employeesApi";
 
-
-
-const initialEmployees = [
-  {
-    id: 1,
-    employee_id: "EMP001",
-    name: "Rahul Sharma",
-    email: "rahul.sharma@company.com",
-    department: "IT",
-    designation: "Senior Developer",
-    phone: "9876543210",
-    status: "Active",
-  },
-  {
-    id: 2,
-    employee_id: "EMP002",
-    name: "Priya Singh",
-    email: "priya.singh@company.com",
-    department: "Finance",
-    designation: "Finance Manager",
-    phone: "9876543211",
-    status: "Active",
-  },
-  {
-    id: 3,
-    employee_id: "EMP003",
-    name: "Arjun Kumar",
-    email: "arjun.kumar@company.com",
-    department: "HR",
-    designation: "HR Executive",
-    phone: "9876543212",
-    status: "Inactive",
-  },
-];
-
 const emptyForm = {
   employee_id: "",
   name: "",
@@ -67,10 +32,6 @@ function Employees() {
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState({});
-
-  useEffect(() => {
-    localStorage.setItem("employees", JSON.stringify(employees));
-  }, [employees]);
 
   const departments = [
     ...new Set(

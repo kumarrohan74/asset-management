@@ -326,6 +326,17 @@ function Assignments() {
 
     return (
         <div className="page">
+            {apiError && (
+                <div className="api-error">
+                    {apiError}
+                    <button
+                        type="button"
+                        onClick={() => setApiError("")}
+                    >
+                        ×
+                    </button>
+                </div>
+            )}
             <div className="page-header">
                 <div>
                     <h2>Assignments</h2>
@@ -449,8 +460,8 @@ function Assignments() {
                                             <td>
                                                 <span
                                                     className={`status-badge assignment-status ${status === "Assigned"
-                                                            ? "assigned"
-                                                            : "returned"
+                                                        ? "assigned"
+                                                        : "returned"
                                                         }`}
                                                 >
                                                     {status}

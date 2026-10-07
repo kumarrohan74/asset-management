@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Literal
 from datetime import date
 from pydantic import BaseModel, EmailStr, ConfigDict
 
@@ -10,7 +10,7 @@ class EmployeeBase(BaseModel):
     department: Optional[str] = None
     designation: Optional[str] = None
     phone: Optional[str] = None
-    status: str = "Active"
+    status: Literal["Active", "Inactive"] = "Active"
 
 
 class EmployeeCreate(EmployeeBase):
@@ -28,7 +28,7 @@ class AssetBase(BaseModel):
     asset_type: Optional[str] = None
     serial_number: Optional[str] = None
     purchase_date: Optional[date] = None
-    status: str = "Available"
+    status: Literal["Available", "Assigned", "Maintenance"] = "Available"
     remarks: Optional[str] = None
 
 

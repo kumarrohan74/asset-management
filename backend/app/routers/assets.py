@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional
 from ..database import get_db
-from ..models import Asset
+from ..models import Asset, AssetAssignment
 from ..schemas import AssetCreate, AssetResponse
 
 
@@ -135,6 +135,18 @@ def delete_asset(
         raise HTTPException(
             status_code=404,
             detail="Asset not found"
+        )
+
+    assignment_history = (
+        db.query(AssetAssignment)
+        .filter(AssetAssignment.asset_id == asset_id)
+        .first()
+    )
+
+    if assignment_history:
+        raise HTTPException(
+            status_code=400,
+            detail="Asset has assignment history and cannot be deleted"
         )
 
     db.delete(asset)

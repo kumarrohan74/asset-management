@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Employee
+from ..models import Employee, AssetAssignment
 from ..schemas import EmployeeCreate, EmployeeResponse
 
 
@@ -128,6 +128,18 @@ def delete_employee(
         raise HTTPException(
             status_code=404,
             detail="Employee not found"
+        )
+
+    assignment_history = (
+        db.query(AssetAssignment)
+        .filter(AssetAssignment.employee_id == employee_id)
+        .first()
+    )
+
+    if assignment_history:
+        raise HTTPException(
+            status_code=400,
+            detail="Employee has assignment history and cannot be deleted"
         )
 
     db.delete(employee)

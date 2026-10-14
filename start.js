@@ -79,9 +79,9 @@ async function checkPython() {
   return null;
 }
 
-async function setupBackend(pythonCommand) {
-  let needsInstall = false;
 
+async function setupBackend(pythonCommand) {
+  // Create the virtual environment only if it does not exist.
   if (!fs.existsSync(pythonPath)) {
     console.log("");
     console.log("Python virtual environment not found.");
@@ -100,29 +100,56 @@ async function setupBackend(pythonCommand) {
       venvProcess,
       "Failed to create Python virtual environment."
     );
-
-    needsInstall = true;
   }
 
-  if (needsInstall) {
-    console.log("");
-    console.log("Installing backend dependencies...");
-    console.log("");
+  // Verify that the expected virtual-environment Python exists.
+  if (!fs.existsSync(pythonPath)) {
+    throw new Error(
+      `Python virtual environment was not created correctly: ${pythonPath}`
+    );
+  }
 
-    const pipProcess = run(
+  // IMPORTANT: Always check and install requirements.
+  // This also repairs existing virtual environments when requirements change.
+  console.log("");
+  console.log("Checking and installing backend dependencies...");
+  console.log("");
+
+  await waitForProcess(
+    run(
       pythonPath,
-      ["-m", "pip", "install", "-r", "requirements.txt"],
+      [
+        "-m",
+        "pip",
+        "install",
+        "-r",
+        "requirements.txt",
+      ],
       {
         cwd: backendDir,
       }
-    );
+    ),
+    "Failed to install backend dependencies."
+  );
 
-    await waitForProcess(
-      pipProcess,
-      "Failed to install backend dependencies."
-    );
-  }
+  // Verify the exact dependency that previously failed.
+  await waitForProcess(
+    run(
+      pythonPath,
+      [
+        "-c",
+        "import email_validator; print('email-validator: OK')",
+      ],
+      {
+        cwd: backendDir,
+      }
+    ),
+    "email-validator is missing from the backend virtual environment."
+  );
+
+  console.log("Backend dependencies: Ready");
 }
+
 
 async function setupFrontend() {
   const nodeModulesPath = path.join(

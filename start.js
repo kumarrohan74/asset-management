@@ -80,76 +80,57 @@ async function checkPython() {
 }
 
 
-async function setupBackend(pythonCommand) {
-  // Create the virtual environment only if it does not exist.
-  if (!fs.existsSync(pythonPath)) {
-    console.log("");
-    console.log("Python virtual environment not found.");
-    console.log("Creating backend virtual environment...");
-    console.log("");
 
-    const venvProcess = run(
-      pythonCommand,
-      ["-m", "venv", "venv"],
-      {
-        cwd: backendDir,
-      }
-    );
+async function setupBackend(pythonCommand) {
+  // Create the virtual environment if needed.
+  if (!fs.existsSync(pythonPath)) {
+    console.log("Creating backend virtual environment...");
 
     await waitForProcess(
-      venvProcess,
+      run(pythonCommand, ["-m", "venv", "venv"], {
+        cwd: backendDir,
+        shell: false,
+      }),
       "Failed to create Python virtual environment."
     );
   }
 
-  // Verify that the expected virtual-environment Python exists.
   if (!fs.existsSync(pythonPath)) {
-    throw new Error(
-      `Python virtual environment was not created correctly: ${pythonPath}`
-    );
+    throw new Error(`Virtual environment Python not found: ${pythonPath}`);
   }
 
-  // IMPORTANT: Always check and install requirements.
-  // This also repairs existing virtual environments when requirements change.
-  console.log("");
-  console.log("Checking and installing backend dependencies...");
-  console.log("");
+  console.log("Installing backend dependencies...");
 
+  // Always install/update dependencies in this exact environment.
   await waitForProcess(
     run(
       pythonPath,
-      [
-        "-m",
-        "pip",
-        "install",
-        "-r",
-        "requirements.txt",
-      ],
+      ["-m", "pip", "install", "-r", "requirements.txt"],
       {
         cwd: backendDir,
+        shell: false,
       }
     ),
     "Failed to install backend dependencies."
   );
 
-  // Verify the exact dependency that previously failed.
+  console.log("Verifying email-validator...");
+
+  // Use a simple import test; don't let Windows shell alter the command.
   await waitForProcess(
     run(
       pythonPath,
-      [
-        "-c",
-        "import email_validator; print('email-validator: OK')",
-      ],
+      ["-c", "import email_validator"],
       {
         cwd: backendDir,
+        shell: false,
       }
     ),
-    "email-validator is missing from the backend virtual environment."
+    "email-validator import failed. Check the dependency installation output above."
   );
 
   console.log("Backend dependencies: Ready");
 }
-
 
 async function setupFrontend() {
   const nodeModulesPath = path.join(
